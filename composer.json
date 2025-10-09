@@ -1,0 +1,19 @@
+{
+    "name": "rafsalvioni/zeus-flatrecord",
+    "description": "A powerful API do manage, parse and generate positional and delimited line records",
+    "authors": [
+        {
+            "name": "Rafael M. Salvioni",
+            "email": "rafael.salvioni@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Zeus\\FlatRecord\\": "src/",
+            "ZeusTest\\FlatRecord\\": "test/"
+        }
+    },
+    "require": {
+        "php": ">=8.2"
+    }
+}
