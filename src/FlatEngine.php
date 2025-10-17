@@ -2,16 +2,14 @@
 
 namespace Zeus\FlatRecord;
 
-use Zeus\FlatRecord\Delimited\DelimitedRecord;
-use Zeus\FlatRecord\Delimited\IndexedField;
-use Zeus\FlatRecord\Positional\PositionalField;
-use Zeus\FlatRecord\Positional\PositionalRecord;
+use ReflectionClass;
+use Zeus\FlatRecord\Exception\ParserDefinitionException;
 
 /**
  * Flat engine
  * 
- * It loads and stores statically classes records descriptors and
- * centralizes parse and toString methods
+ * It loads record parsers from classes with parse/field Attributes and store
+ * them statically, centralizing parse and "to string" operations
  * 
  * The records descritors working with class hierarchy and traits too.
  *
@@ -20,11 +18,18 @@ use Zeus\FlatRecord\Positional\PositionalRecord;
 final class FlatEngine
 {
     /**
-     * Classes' descripptors
+     * Creates a new object using line given
      * 
-     * @var FlatRecordInterface[]
+     * @param string $line
+     * @param string $class
+     * @return object
      */
-    private static array $descriptors = [];
+    public static function createFrom(string $line, string $class): object
+    {
+        $obj = new $class();
+        self::parseInto($line, $obj);
+        return $obj;
+    }
     
     /**
      * Parses a string into object given
@@ -44,30 +49,40 @@ final class FlatEngine
      * @param object $obj
      * @return string
      */
-    public static function toString(object $obj): string
+    public static function getStringFrom(object $obj): string
     {
-        return self::load($obj)->toString($obj);
+        return self::load($obj)->getStringFrom($obj);
     }
     
     /**
-     * Creates a record descriptor to given object
+     * Loads the record descriptor to given object or class
      * 
-     * @param object $obj
-     * @return FlatRecordInterface
-     * @throws \Exception
+     * Use class' Attributes to mount record parser
+     * 
+     * First, it try do find a attribute child of RecordParserInterface to determine
+     * main parser. If found, it iterates in class properties to gets attributes child
+     * of FieldConfigInterface and adds them to the parser
+     * 
+     * So, result parser is cached to next uses
+     * 
+     * @param object|string $objOrClass
+     * @return RecordParserInterface
+     * @throws ParserDefinitionException Couldnt determine record parser
      */
-    private static function load(object $obj): FlatRecordInterface
+    public static function load(object|string $objOrClass): RecordParserInterface
     {
-        $class = \get_class($obj);
-        if (!isset(self::$descriptors[$class])) {
-            $parser = self::loadDescriptor($obj, PositionalRecord::class, PositionalField::class);
-            $parser = $parser ?? self::loadDescriptor($obj, DelimitedRecord::class, IndexedField::class);
+        static $loaded = [];
+        $class = \is_object($objOrClass) ? \get_class($objOrClass) : $objOrClass;
+        if (!isset($loaded[$class])) {
+            $parser = self::loadDescriptor($objOrClass);
             if (!$parser) {
-                throw new \Exception(\sprintf('%s class doenst have a FlatRecord attribute', \get_class($obj)));
+                throw new ParserDefinitionException(
+                    \sprintf('%s class doenst have a %s attribute', $class, RecordParserInterface::class)
+                );
             }
-            self::$descriptors[$class] = $parser;
+            $loaded[$class] = $parser;
         }
-        return self::$descriptors[$class];
+        return $loaded[$class];
     }
 
     /**
@@ -77,27 +92,31 @@ final class FlatEngine
      * 
      * Returns null if cant
      * 
-     * @param object $obj
+     * @param object|string $objOrClass
      * @param string $attrRecord Record attribute
      * @param string $attrField Field attribute
-     * @return FlatRecordInterface|null
+     * @return RecordParserInterface|null
      */
-    private static function loadDescriptor(
-        object $obj, string $attrRecord, string $attrField
-    ): ?FlatRecordInterface {
-        $class = new \ReflectionClass($obj);
-        foreach ($class->getAttributes($attrRecord) as $attrib) {
-            $parser = $attrib->newInstance();
-            break;
+    private static function loadDescriptor(object|string $objOrClass): ?RecordParserInterface
+    {
+        $class = new ReflectionClass($objOrClass);
+        foreach ($class->getAttributes() as $attrib) {
+            $attrClass = new ReflectionClass($attrib->getName());
+            if ($attrClass->isSubclassOf(RecordParserInterface::class)) {
+                $parser = $attrib->newInstance();
+                break;
+            }
         }
         if (!isset($parser)) {
             return null;
         }
         foreach ($class->getProperties() as $prop) {
-            foreach ($prop->getAttributes($attrField) as $attrib) {
-                $field = $attrib->newInstance();
-                $field->setTarget($prop);
-                $parser->addField($field);
+            foreach ($prop->getAttributes() as $attrib) {
+                $attrClass = new ReflectionClass($attrib->getName());
+                if ($attrClass->isSubclassOf(FieldConfigInterface::class)) {
+                    $field = $attrib->newInstance();
+                    $parser->addField($prop->getName(), $field);
+                }
             }
         }
         return $parser;

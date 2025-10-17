@@ -3,15 +3,15 @@
 namespace Zeus\FlatRecord\Decorator;
 
 /**
- * Implements a float decorator
+ * Implements a number decorator
  * 
  * Sometimes, floats are represented without decimals, like a integer.
  * 
- * Flat fields define what the precision
+ * Flat fields define what the precision. If precision eq 0, treats as integer
  *
  * @author Rafael M. Salvioni
  */
-class FloatDecorator implements DecoratorInterface
+class NumberDecorator implements DecoratorInterface
 {
     /**
      * 
@@ -31,10 +31,9 @@ class FloatDecorator implements DecoratorInterface
     /**
      * 
      * @param string $string
-     * @param string $target
      * @return float
      */
-    public function fromString(string $string, string $target): mixed
+    public function fromString(string $string): mixed
     {
         $num = (int)$string;
         return ($num / \pow(10, $this->precision));
@@ -47,7 +46,10 @@ class FloatDecorator implements DecoratorInterface
      */
     public function toString(mixed $value): string
     {
-        $num = $value * \pow(10, $this->precision);
-        return (string)$num;
+        if ($value === null) {
+            return '';
+        }
+        $num = (string)($value * \pow(10, $this->precision));
+        return \preg_replace('/\..+$/', '', $num);
     }
 }

@@ -1,6 +1,7 @@
 {
     "name": "rafsalvioni/zeus-flatrecord",
-    "description": "A powerful API do manage, parse and generate positional and delimited line records",
+    "description": "A simple and powerful API do manage, parse and generate fixed-length and delimited line records",
+    "keywords": ["csv", "flat", "record", "fixed-length", "delimited"],
     "authors": [
         {
             "name": "Rafael M. Salvioni",
@@ -13,7 +14,16 @@
             "ZeusTest\\FlatRecord\\": "test/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ZeusTest\\FlatRecord\\": "test/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "10.5.*"
+    },
     "require": {
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "rafsalvioni/zeus-base": ">=3.5"
     }
 }

@@ -27,11 +27,13 @@ class DateTimeDecorator implements DecoratorInterface
     /**
      * 
      * @param string $string
-     * @param string $target
      * @return \DateTime
      */
-    public function fromString(string $string, string $target): mixed
+    public function fromString(string $string): mixed
     {
+        if (empty($string)) {
+            return '';
+        }
         return \DateTime::createFromFormat($this->format, $string);
     }
 
@@ -42,6 +44,9 @@ class DateTimeDecorator implements DecoratorInterface
      */
     public function toString(mixed $value): string
     {
+        if ($value === null) {
+            return '';
+        }
         return $value->format($this->format);
     }
 }

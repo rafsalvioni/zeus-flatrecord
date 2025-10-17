@@ -10,26 +10,32 @@ namespace Zeus\FlatRecord\Decorator;
 class DefaultDecorator implements DecoratorInterface
 {
     /**
-     * Uses PHP's settype()
      * 
      * @param string $string
      * @param string $type
      * @return mixed
      */
-    public function fromString(string $string, string $type): mixed
+    public function fromString(string $string): mixed
     {
-        \settype($string, $type);
-        return $string;
+        return match(true) {
+            !!\preg_match('/^(true|false)$/i', $string) => \strtolower($string) == 'true',
+            empty($string) => null,
+            default => $string
+        };
     }
 
     /**
-     * Just cast object to string
+     * Just cast object to string and replace LF CR chars to spaces
      * 
      * @param mixed $value
      * @return string
      */
     public function toString(mixed $value): string
     {
-        return (string)$value;
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        $string = (string)$value;
+        return \preg_replace('/[\r\n]/', ' ', $string);
     }
 }

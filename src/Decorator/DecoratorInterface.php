@@ -24,8 +24,7 @@ interface DecoratorInterface
      * Converts a string to a arbitrary value
      * 
      * @param string $string
-     * @param string $target Type target
      * @return mixed
      */
-    public function fromString(string $string, string $target): mixed;
+    public function fromString(string $string): mixed;
 }
